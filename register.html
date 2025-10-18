@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Blogify</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // To prevent flash of unstyled content (FOUC) in dark mode
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+<body x-data="authApp()">
+    <!-- Back to Home Link -->
+    <a href="index.html" class="back-link">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Back to Home
+    </a>
+
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Header -->
+            <div class="auth-header">
+                <h1 class="auth-title" x-text="isLogin ? 'Welcome Back' : 'Create Account'"></h1>
+                <p class="auth-subtitle" x-text="isLogin ? 'Sign in to your account' : 'Join our community of developers'"></p>
+            </div>
+
+            <!-- Login Form -->
+            <form x-show="isLogin" @submit.prevent="handleLogin">
+                <div class="form-group">
+                    <label for="login-userid" class="form-label">User ID</label>
+                    <input 
+                        type="text" 
+                        id="login-userid" 
+                        class="form-input" 
+                        placeholder="Enter your user ID"
+                        x-model="loginForm.userid"
+                        required
+                    >
+                    <div class="error-message" x-show="loginErrors.userid" x-text="loginErrors.userid"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="login-password" class="form-label">Password</label>
+                    <input 
+                        type="password" 
+                        id="login-password" 
+                        class="form-input" 
+                        placeholder="Enter your password"
+                        x-model="loginForm.password"
+                        required
+                    >
+                    <div class="error-message" x-show="loginErrors.password" x-text="loginErrors.password"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary auth-submit-btn">
+                    Sign In
+                </button>
+
+                <div class="success-message" x-show="loginSuccess" x-text="loginSuccess"></div>
+            </form>
+
+            <!-- Register Form -->
+            <form x-show="!isLogin" @submit.prevent="handleRegister">
+                <div class="form-group">
+                    <label for="register-userid" class="form-label">User ID</label>
+                    <input 
+                        type="text" 
+                        id="register-userid" 
+                        class="form-input" 
+                        placeholder="Choose a unique user ID"
+                        x-model="registerForm.userid"
+                        @input="validateUserID"
+                        required
+                    >
+                    <div class="error-message" x-show="registerErrors.userid" x-text="registerErrors.userid"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-email" class="form-label">Email</label>
+                    <input 
+                        type="email" 
+                        id="register-email" 
+                        class="form-input" 
+                        placeholder="Enter your email address"
+                        x-model="registerForm.email"
+                        @input="validateEmail"
+                        required
+                    >
+                    <div class="error-message" x-show="registerErrors.email" x-text="registerErrors.email"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-password" class="form-label">Password</label>
+                    <input 
+                        type="password" 
+                        id="register-password" 
+                        class="form-input" 
+                        placeholder="Create a strong password"
+                        x-model="registerForm.password"
+                        @input="validatePassword"
+                        required
+                    >
+                    <div class="password-requirements" :class="{ 'valid': passwordValid }">
+                        Password must be at least 8 characters with uppercase, lowercase, and number
+                    </div>
+                    <div class="error-message" x-show="registerErrors.password" x-text="registerErrors.password"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-confirm-password" class="form-label">Confirm Password</label>
+                    <input 
+                        type="password" 
+                        id="register-confirm-password" 
+                        class="form-input" 
+                        placeholder="Confirm your password"
+                        x-model="registerForm.confirmPassword"
+                        @input="validateConfirmPassword"
+                        required
+                    >
+                    <div class="error-message" x-show="registerErrors.confirmPassword" x-text="registerErrors.confirmPassword"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary auth-submit-btn">
+                    Create Account
+                </button>
+
+                <div class="success-message" x-show="registerSuccess" x-text="registerSuccess"></div>
+            </form>
+
+            <!-- Toggle between Login and Register -->
+            <div class="auth-toggle">
+                <p class="auth-toggle-text">
+                    <span x-text="isLogin ? 'Don\'t have an account?' : 'Already have an account?'"></span>
+                    <a @click="toggleMode" class="auth-toggle-link" x-text="isLogin ? 'Sign up' : 'Sign in'"></a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dark Mode Toggle -->
+    <button id="theme-toggle" class="icon-button theme-toggle-fixed" aria-label="Toggle theme" title="Toggle theme">
+        <svg id="theme-toggle-dark-icon" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+        <svg id="theme-toggle-light-icon" class="hidden h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 10.607a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707-.707a1 1 0 01-1.414 0zM1 11a1 1 0 100-2H0a1 1 0 100 2h1z"></path></svg>
+    </button>
+    
+    <script src="script.js" defer></script>
+    <script>
+        function authApp() {
+            return {
+                isLogin: true,
+                passwordValid: false,
+                
+                // Login form data
+                loginForm: {
+                    userid: '',
+                    password: ''
+                },
+                
+                // Register form data
+                registerForm: {
+                    userid: '',
+                    email: '',
+                    password: '',
+                    confirmPassword: ''
+                },
+                
+                // Error messages
+                loginErrors: {
+                    userid: '',
+                    password: ''
+                },
+                
+                registerErrors: {
+                    userid: '',
+                    email: '',
+                    password: '',
+                    confirmPassword: ''
+                },
+                
+                // Success messages
+                loginSuccess: '',
+                registerSuccess: '',
+                
+                // Toggle between login and register
+                toggleMode() {
+                    this.isLogin = !this.isLogin;
+                    this.clearMessages();
+                    this.clearForms();
+                },
+                
+                // Clear all error and success messages
+                clearMessages() {
+                    this.loginErrors = { userid: '', password: '' };
+                    this.registerErrors = { userid: '', email: '', password: '', confirmPassword: '' };
+                    this.loginSuccess = '';
+                    this.registerSuccess = '';
+                },
+                
+                // Clear form data
+                clearForms() {
+                    this.loginForm = { userid: '', password: '' };
+                    this.registerForm = { userid: '', email: '', password: '', confirmPassword: '' };
+                    this.passwordValid = false;
+                },
+                
+                // Validate User ID
+                validateUserID() {
+                    const userid = this.registerForm.userid;
+                    if (userid.length < 3) {
+                        this.registerErrors.userid = 'User ID must be at least 3 characters';
+                    } else if (!/^[a-zA-Z0-9_]+$/.test(userid)) {
+                        this.registerErrors.userid = 'User ID can only contain letters, numbers, and underscores';
+                    } else {
+                        this.registerErrors.userid = '';
+                    }
+                },
+                
+                // Validate Email
+                validateEmail() {
+                    const email = this.registerForm.email;
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        this.registerErrors.email = 'Please enter a valid email address';
+                    } else {
+                        this.registerErrors.email = '';
+                    }
+                },
+                
+                // Validate Password
+                validatePassword() {
+                    const password = this.registerForm.password;
+                    const hasUpperCase = /[A-Z]/.test(password);
+                    const hasLowerCase = /[a-z]/.test(password);
+                    const hasNumbers = /\d/.test(password);
+                    const hasMinLength = password.length >= 8;
+                    
+                    this.passwordValid = hasUpperCase && hasLowerCase && hasNumbers && hasMinLength;
+                    
+                    if (!this.passwordValid && password.length > 0) {
+                        this.registerErrors.password = 'Password must be at least 8 characters with uppercase, lowercase, and number';
+                    } else {
+                        this.registerErrors.password = '';
+                    }
+                    
+                    // Re-validate confirm password if it exists
+                    if (this.registerForm.confirmPassword) {
+                        this.validateConfirmPassword();
+                    }
+                },
+                
+                // Validate Confirm Password
+                validateConfirmPassword() {
+                    if (this.registerForm.password !== this.registerForm.confirmPassword) {
+                        this.registerErrors.confirmPassword = 'Passwords do not match';
+                    } else {
+                        this.registerErrors.confirmPassword = '';
+                    }
+                },
+                
+                // Handle Login
+                handleLogin() {
+                    this.clearMessages();
+                    
+                    // Basic validation
+                    if (!this.loginForm.userid) {
+                        this.loginErrors.userid = 'User ID is required';
+                        return;
+                    }
+                    
+                    if (!this.loginForm.password) {
+                        this.loginErrors.password = 'Password is required';
+                        return;
+                    }
+                    
+                    // Simulate login process
+                    this.loginSuccess = 'Login successful! Redirecting...';
+                    
+                    // In a real app, you would make an API call here
+                    setTimeout(() => {
+                        // Redirect to dashboard or home page
+                        window.location.href = 'index.html';
+                    }, 1500);
+                },
+                
+                // Handle Register
+                handleRegister() {
+                    this.clearMessages();
+                    
+                    // Validate all fields
+                    this.validateUserID();
+                    this.validateEmail();
+                    this.validatePassword();
+                    this.validateConfirmPassword();
+                    
+                    // Check if there are any errors
+                    const hasErrors = Object.values(this.registerErrors).some(error => error !== '');
+                    
+                    if (hasErrors) {
+                        return;
+                    }
+                    
+                    // Simulate registration process
+                    this.registerSuccess = 'Account created successfully! You can now sign in.';
+                    
+                    // In a real app, you would make an API call here
+                    setTimeout(() => {
+                        this.toggleMode(); // Switch to login mode
+                    }, 2000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
